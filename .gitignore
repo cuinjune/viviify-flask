@@ -1,0 +1,4 @@
+# ignore weird mac files
+.DS_Store
+# ignore the .env file with your secret info
+.env

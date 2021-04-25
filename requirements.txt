@@ -1,0 +1,5 @@
+Flask
+gevent
+python-decouple
+python-pixabay
+spacy
