@@ -52,7 +52,7 @@ def get_video_data(text, main_keywords, duration, video_ids):
     if not video_url:
         max_similarity = 0
         max_hit = {}
-        for hit in video.search(q="abstract", safesearch="true", per_page=200)["hits"]:
+        for hit in reversed(video.search(q="abstract", safesearch="true", per_page=200)["hits"]):
             if min_duration <= hit["duration"] <= max_duration and hit["picture_id"] not in video_ids:
                 similarity = doc_keywords.similarity(nlp(hit["tags"].replace(",", "")))
                 if similarity >= max_similarity:
