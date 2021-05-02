@@ -34,7 +34,6 @@ def get_video_data(text, main_keywords, duration, video_ids):
     video_url = ""
     video_id = 0
     for keyword in keywords:
-        # per keyword
         max_similarity = 0
         max_hit = {}
         for hit in video.search(q=keyword, safesearch="true", per_page=200)["hits"]:
@@ -48,17 +47,20 @@ def get_video_data(text, main_keywords, duration, video_ids):
             if not video_url:
                 continue
             video_id = max_hit["picture_id"]
-            video_ids.add(video_id);
+            video_ids.add(video_id)
             break
-    if not video_url: #find random abstract videos?
+    if not video_url:
+        max_similarity = 0
+        max_hit = {}
         for hit in video.search(q="abstract", safesearch="true", per_page=200)["hits"]:
             if min_duration <= hit["duration"] <= max_duration and hit["picture_id"] not in video_ids:
-                video_url = hit["videos"]["large"]["url"] or max_hit["videos"]["medium"]["url"] or max_hit["videos"]["small"]["url"]
-                if not video_url:
-                  continue
-                video_id = hit["picture_id"]
-                video_ids.add(video_id);
-                break;
+                similarity = doc_keywords.similarity(nlp(hit["tags"].replace(",", "")))
+                if similarity >= max_similarity:
+                    max_similarity = similarity
+                    max_hit = hit
+        video_url = max_hit["videos"]["large"]["url"] or max_hit["videos"]["medium"]["url"] or max_hit["videos"]["small"]["url"]
+        video_id = max_hit["picture_id"]
+        video_ids.add(video_id)
     return { "auth": True, "message": "Successfully got video data", "videoUrl": video_url, "videoId": video_id }
 
 @app.route("/api/v1/flask/keywords", methods=["POST"])
