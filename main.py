@@ -31,37 +31,30 @@ def get_video_data(text, main_keywords, duration, video_ids):
     keywords = [k[0] for k in Counter(keywords).most_common(5)] + main_keywords # keywords to search in order
     min_duration = duration
     max_duration = 60 * 5
-    video_url = ""
-    video_id = 0
+    videos = list()
     for keyword in keywords:
-        max_similarity = 0
-        max_hit = {}
+        keyword_videos = list()
         for hit in video.search(q=keyword, safesearch="true", per_page=200)["hits"]:
             if min_duration <= hit["duration"] <= max_duration and hit["picture_id"] not in video_ids:
                 similarity = doc_keywords.similarity(nlp(hit["tags"].replace(",", "")))
-                if similarity > max_similarity:
-                    max_similarity = similarity
-                    max_hit = hit
-        if max_similarity > 0.5 and max_hit:
-            video_url = max_hit["videos"]["large"]["url"] or max_hit["videos"]["medium"]["url"] or max_hit["videos"]["small"]["url"]
-            if not video_url:
-                continue
-            video_id = max_hit["picture_id"]
-            video_ids.add(video_id)
-            break
-    if not video_url:
-        max_similarity = 0
-        max_hit = {}
+                if similarity > 0.5:
+                    video_ids.add(hit["picture_id"])
+                    keyword_videos.append({"similarity": similarity, "url": hit["videos"]["medium"]["url"] or hit["videos"]["small"]["url"], "id": hit["picture_id"]})
+        if keyword_videos:
+            keyword_videos = sorted(keyword_videos, key=lambda k: k["similarity"], reverse=True)[:2]
+            videos.extend(keyword_videos)
+            if len(videos) >= 6:
+                break
+    if len(videos) < 6:
+        keyword_videos = list()
         for hit in reversed(video.search(q="abstract", safesearch="true", per_page=200)["hits"]):
             if min_duration <= hit["duration"] <= max_duration and hit["picture_id"] not in video_ids:
                 similarity = doc_keywords.similarity(nlp(hit["tags"].replace(",", "")))
-                if similarity >= max_similarity:
-                    max_similarity = similarity
-                    max_hit = hit
-        video_url = max_hit["videos"]["large"]["url"] or max_hit["videos"]["medium"]["url"] or max_hit["videos"]["small"]["url"]
-        video_id = max_hit["picture_id"]
-        video_ids.add(video_id)
-    return { "auth": True, "message": "Successfully got video data", "videoUrl": video_url, "videoId": video_id }
+                video_ids.add(hit["picture_id"])
+                keyword_videos.append({"similarity": similarity, "url": hit["videos"]["medium"]["url"] or hit["videos"]["small"]["url"], "id": hit["picture_id"]})
+        keyword_videos = sorted(keyword_videos, key=lambda k: k["similarity"], reverse=True)[:6]
+        videos.extend(keyword_videos)
+    return { "auth": True, "message": "Successfully got video data", "videos": videos[:6] }
 
 @app.route("/api/v1/flask/keywords", methods=["POST"])
 def post_keywords():
